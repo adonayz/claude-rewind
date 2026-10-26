@@ -66,13 +66,13 @@ def read_lines(path):
 class RewindTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
-        self.path = self.root / "-work-app" / f"{SOURCE}.jsonl"
-        self.path.parent.mkdir()
+        self.addCleanup(self.tmp.cleanup)
+        patcher = mock.patch.dict(os.environ, {"CLAUDE_CONFIG_DIR": self.tmp.name})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.path = Path(self.tmp.name) / "projects" / "-work-app" / f"{SOURCE}.jsonl"
+        self.path.parent.mkdir(parents=True)
         self.write(ENTRIES)
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def write(self, entries):
         self.path.write_text("".join(json.dumps(e, separators=(",", ":")) + "\n" for e in entries))
@@ -100,11 +100,17 @@ class RewindTest(unittest.TestCase):
         self.assertEqual(cr.read_session(self.path).cwd, "/work/app")
 
     def test_finds_sessions_by_id_or_path(self):
-        self.assertEqual(cr.find_session(SOURCE, self.root), self.path)
+        self.assertEqual(cr.find_session(SOURCE), self.path)
         self.assertEqual(cr.find_session(str(self.path)), self.path)
-        self.assertEqual([s.path for s in cr.list_sessions(self.root)], [self.path])
+        self.assertEqual([s.path for s in cr.list_sessions()], [self.path])
         with self.assertRaises(SystemExit):
-            cr.find_session("missing", self.root)
+            cr.find_session("missing")
+
+    def test_rejects_a_file_outside_the_session_store(self):
+        outside = Path(self.tmp.name) / f"{SOURCE}.jsonl"
+        outside.write_bytes(self.path.read_bytes())
+        with self.assertRaises(SystemExit):
+            cr.find_session(str(outside))
 
     def test_rewinds_across_a_compaction(self):
         original = self.path.read_bytes()

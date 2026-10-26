@@ -147,9 +147,9 @@ def read_session(path: Path) -> Session:
                    stat.st_mtime, stat.st_size)
 
 
-def list_sessions(root: Path | None = None) -> list[Session]:
+def list_sessions() -> list[Session]:
     sessions = []
-    for path in (root or projects_dir()).glob("*/*.jsonl"):
+    for path in projects_dir().glob("*/*.jsonl"):
         try:
             if path.stat().st_size:
                 sessions.append(read_session(path))
@@ -158,12 +158,16 @@ def list_sessions(root: Path | None = None) -> list[Session]:
     return sorted(sessions, key=lambda s: s.modified, reverse=True)
 
 
-def find_session(ref: str, root: Path | None = None) -> Path:
-    """Resolve a session ID or a path to a session file."""
+def find_session(ref: str) -> Path:
+    """Resolve a session ID or a path to a session file in Claude Code's store."""
     path = Path(ref).expanduser()
     if path.suffix == ".jsonl" and path.is_file():
+        # The new session is written next to the source, and Claude Code only
+        # resumes sessions from its own store.
+        if not path.resolve().is_relative_to(projects_dir().resolve()):
+            raise SystemExit(f"claude-rewind: {path} is not in {projects_dir()}, so Claude Code could not resume a copy of it")
         return path
-    matches = list((root or projects_dir()).glob(f"*/{ref}.jsonl"))
+    matches = list(projects_dir().glob(f"*/{ref}.jsonl"))
     if not matches:
         raise SystemExit(f"claude-rewind: no session found for {ref!r}")
     return matches[0]
