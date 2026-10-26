@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import stat
@@ -144,13 +145,15 @@ class RewindTest(unittest.TestCase):
         self.assertEqual(list(self.path.parent.iterdir()), [self.path])
 
     def test_cli_creates_a_named_session(self):
+        self.write([ENTRIES[0], typed("u1", None, "first prompt") | {"cwd": "/work/my app"}] + ENTRIES[2:])
         picks = iter([1])  # prompts are listed newest first: index 1 is "redo prompt"
         with mock.patch.object(cr.shutil, "which", return_value="/usr/bin/fzf"), \
                 mock.patch.object(cr, "_pick", side_effect=lambda *a, **k: next(picks)), \
-                mock.patch("sys.stdout"):
+                mock.patch("sys.stdout", new_callable=io.StringIO) as stdout:
             self.assertEqual(cr.main([str(self.path), "--no-launch", "--name", "Named"]), 0)
         (fork,) = [p for p in self.path.parent.iterdir() if p != self.path]
         self.assertEqual(read_lines(fork)[-1]["customTitle"], "Named")
+        self.assertIn(f"cd '/work/my app' && claude --resume {fork.stem}", stdout.getvalue())
 
 
 if __name__ == "__main__":

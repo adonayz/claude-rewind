@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -332,7 +333,7 @@ def _launch(session_id: str, cwd: str | None) -> int:
     directory = cwd if cwd and os.path.isdir(cwd) else os.getcwd()
     command = [claude or "claude", "--resume", session_id]
     if not claude:
-        print(f"Open it with: cd {directory} && claude --resume {session_id}")
+        print(f"Open it with: cd {shlex.quote(directory)} && claude --resume {session_id}")
         return 0
     if os.name == "nt":
         return subprocess.call(command, cwd=directory)
@@ -398,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
     new_id = rewind(session.path, prompt, title)
     print(f'Created "{title}" ({new_id}), ending before your prompt from {_local_time(prompt.timestamp)}.')
     if args.no_launch:
-        print(f"Open it with: cd {session.cwd or '.'} && claude --resume {new_id}")
+        print(f"Open it with: cd {shlex.quote(session.cwd or '.')} && claude --resume {new_id}")
         return 0
     return _launch(new_id, session.cwd)
 
