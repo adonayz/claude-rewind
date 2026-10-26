@@ -132,7 +132,9 @@ class RewindTest(unittest.TestCase):
     def test_cut_follows_the_prompt_parent_not_the_line_above(self):
         new_id = cr.rewind(self.path, self.prompt("redo prompt"), "t")
         lines = read_lines(self.path.with_name(f"{new_id}.jsonl"))
-        self.assertEqual([e["forkedFrom"]["messageUuid"] for e in lines[:-1]], ["u1", "a1", "s1", "u2", "a2", "tr2", "a3"])
+        self.assertEqual([e["forkedFrom"]["messageUuid"] for e in lines[:-2]], ["u1", "a1", "s1", "u2", "a2", "tr2", "a3"])
+        # Written after a3, but it belongs to the kept tool result.
+        self.assertEqual(lines[-2]["replacements"], [{"toolUseId": "t", "content": "c"}])
 
     def test_missing_parent_leaves_no_file(self):
         prompt = self.prompt("redo prompt")

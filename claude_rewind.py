@@ -237,6 +237,10 @@ def rewind(path: Path, prompt: Prompt, title: str) -> str:
                 out.write(json.dumps(entry, separators=(",", ":")) + "\n")
 
             for line in source:
+                # Past the cut only content-replacement records matter: they can be
+                # written after the tool results they replace.
+                if found and '"content-replacement"' not in line:
+                    continue
                 try:
                     entry = json.loads(line)
                 except ValueError:
@@ -246,6 +250,8 @@ def rewind(path: Path, prompt: Prompt, title: str) -> str:
                 kind = entry.get("type")
                 if kind == "content-replacement" and entry.get("sessionId") == source_id:
                     replacements.extend(entry.get("replacements") or [])
+                    continue
+                if found:
                     continue
                 old = entry.get("uuid")
                 if kind not in TRANSCRIPT_TYPES or not isinstance(old, str) or entry.get("isSidechain"):
@@ -270,7 +276,6 @@ def rewind(path: Path, prompt: Prompt, title: str) -> str:
                         previous.pop(key, None)
                 if old == prompt.parent:
                     found = True
-                    break
             if not found or previous is None:
                 raise SystemExit("claude-rewind: the session changed; pick the prompt again")
             # Claude Code resumes from the newest entry.
