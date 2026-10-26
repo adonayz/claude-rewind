@@ -127,24 +127,23 @@ def read_session(path: Path) -> Session:
         or last(tail, "aiTitle")
         or last(head, "aiTitle")
     )
-    lines = head.splitlines()
-    if stat.st_size > TITLE_SCAN_BYTES:
-        lines = lines[:-1]  # may be cut off mid-entry
-    cwd = None
-    for line in lines:
-        try:
-            entry = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(entry, dict):
-            continue
-        cwd = cwd or entry.get("cwd")
-        if not title:
-            first = prompt_text(entry)
-            title = first[:80] if first else None
-        if cwd and title:
-            break
-    return Session(path, " ".join((title or "(untitled)").split()), cwd, stat.st_mtime, stat.st_size)
+    if not title:
+        lines = head.splitlines()
+        if stat.st_size > TITLE_SCAN_BYTES:
+            lines = lines[:-1]  # may be cut off mid-entry
+        for line in lines:
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            first = prompt_text(entry) if isinstance(entry, dict) else None
+            if first:
+                title = first[:80]
+                break
+    # Read directly: the first entry can be larger than the scanned head.
+    cwds = _string_fields(head, "cwd")
+    return Session(path, " ".join((title or "(untitled)").split()), cwds[0] if cwds else None,
+                   stat.st_mtime, stat.st_size)
 
 
 def list_sessions(root: Path | None = None) -> list[Session]:

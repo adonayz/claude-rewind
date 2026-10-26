@@ -93,6 +93,11 @@ class RewindTest(unittest.TestCase):
         self.write([e for e in ENTRIES if "aiTitle" not in e and "customTitle" not in e])
         self.assertEqual(cr.read_session(self.path).title, "first prompt")
 
+    def test_reads_working_directory_from_an_oversized_first_entry(self):
+        first = {"parentUuid": None, "cwd": "/work/app"} | typed("u1", None, "x" * 70_000)
+        self.write([first] + ENTRIES[2:])
+        self.assertEqual(cr.read_session(self.path).cwd, "/work/app")
+
     def test_finds_sessions_by_id_or_path(self):
         self.assertEqual(cr.find_session(SOURCE, self.root), self.path)
         self.assertEqual(cr.find_session(str(self.path)), self.path)
