@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "claude-rewind"
+version = "0.1.0"
+description = "Reopen a Claude Code session at any earlier prompt, including prompts from before a compaction"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "Adonay Resom" }]
+keywords = ["claude", "claude-code", "rewind", "session", "compaction", "cli"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/adonayz/claude-rewind"
+Issues = "https://github.com/adonayz/claude-rewind/issues"
+
+[project.scripts]
+claude-rewind = "claude_rewind:main"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["claude_rewind.py"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["claude_rewind.py", "tests", "README.md", "LICENSE"]
