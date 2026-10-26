@@ -171,37 +171,34 @@ def find_session(ref: str, root: Path | None = None) -> Path:
 def list_prompts(path: Path) -> list[Prompt]:
     """Every typed prompt that has something before it, in file order.
 
-    context_tokens is the context size Claude Code reported just before the
-    prompt, so you can tell how close a rewound session starts to compaction.
+    context_tokens is the context size Claude Code reported at the prompt's
+    parent, so you can tell how close a rewound session starts to compaction.
     """
     prompts = []
-    context = None
+    context_at: dict[str, int | None] = {}  # context size after each entry
     with open(path, encoding="utf-8", errors="replace") as f:
         for number, line in enumerate(f):
-            # Cheap filter: only these lines matter, and parsing every line of
-            # a large session is several times slower.
-            if not ('"type":"user"' in line or '"type":"assistant"' in line or '"compact_boundary"' in line):
-                continue
             try:
                 entry = json.loads(line)
             except ValueError:
                 continue
-            if not isinstance(entry, dict) or entry.get("isSidechain"):
+            if not isinstance(entry, dict) or entry.get("isSidechain") or not isinstance(entry.get("uuid"), str):
                 continue
+            parent = entry.get("parentUuid")
+            context = context_at.get(parent) if isinstance(parent, str) else None
             if entry.get("subtype") == "compact_boundary":
                 context = (entry.get("compactMetadata") or {}).get("postTokens")
-                continue
-            if entry.get("type") == "assistant":
+            elif entry.get("type") == "assistant":
                 usage = (entry.get("message") or {}).get("usage")
                 if isinstance(usage, dict):
                     context = sum(
                         usage.get(key) or 0
                         for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens")
                     )
-                continue
+            context_at[entry["uuid"]] = context
             text = prompt_text(entry)
-            if text and isinstance(entry.get("uuid"), str) and isinstance(entry.get("parentUuid"), str):
-                prompts.append(Prompt(number, entry["uuid"], entry["parentUuid"], entry.get("timestamp", ""), text, context))
+            if text and isinstance(parent, str):
+                prompts.append(Prompt(number, entry["uuid"], parent, entry.get("timestamp", ""), text, context_at.get(parent)))
     return prompts
 
 

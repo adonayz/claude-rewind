@@ -47,7 +47,7 @@ ENTRIES = [
     entry("user", "meta", "tn", isMeta=True, message={"role": "user", "content": "meta"}),
     entry("assistant", "sc", None, isSidechain=True, message=usage(5)),
     typed("u3", "a3", "abandoned prompt"),
-    entry("assistant", "a4", "u3", message={"role": "assistant", "content": []}),
+    entry("assistant", "a4", "u3", message=usage(700)),
     typed("u3b", "a3", "redo prompt"),
     entry("assistant", "a5", "u3b", message=usage(900)),
     entry("system", "cb", None, subtype="compact_boundary", logicalParentUuid="a5", compactMetadata={"postTokens": 40}),
